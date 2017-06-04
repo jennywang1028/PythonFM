@@ -1,0 +1,15 @@
+recommendation system:
+	- content filtering
+	- collaborative filtering
+	- hybrid
+introduction to factorization machine
+gradient:
+	- vectorize and pre-computation
+	- minimize.py	
+	- cython
+challenge:
+	- gradient w/r to matrix
+	- 
+result:
+	-rmse
+	-avg distance
