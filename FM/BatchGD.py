@@ -1,22 +1,27 @@
+'''
+This implements Factorization Machine by Rendle.
+Unlike other implementation, this implementation uses only python features. 
+'''
 import numpy as np
 import scipy as sp
-import processData
+import os
+# import processData
+import pickle
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction import DictVectorizer
 from scipy import sparse as spa
 from scipy import stats
 import time
+from time import clock
+import heapq
+import operator
 from minimize import minimize
 
-def predictionForOne(x, x2, w0, W, V_T, V2_T):
-    # m = x.size
-    # x = x.reshape(m, -1)
-    # print(W.shape)
-    res1 = V_T.dot(x)
-    res1 = np.sum(res1 ** 2)
-    res2 = V2_T.dot(x2)
-    res2 = np.sum(res2)
-    return w0 + W.dot(x.flatten()) + 0.5 * (res1 - res2)
+factor = 100
+
+W0_ADDR = "../Saved/w0.pkl"
+W_ADDR = "../Saved/w.pkl"
+V_ADDR = "../Saved/V.pkl"
 
 '''
 Generates prediction y for given X, w0, W, V following the definition of factorization machine
@@ -32,7 +37,9 @@ def prediction(X,w0,W,V):
     res1 += t
     return res1
 
-
+'''
+Computes loss for given y, prediction, W, and regularizer weight. 
+'''
 def L(Y, prediction, W, reg_weight = 0.01,loss = "squared"):
     if(loss == "squared"):
         n = Y.size
@@ -40,6 +47,10 @@ def L(Y, prediction, W, reg_weight = 0.01,loss = "squared"):
         regularizer = reg_weight * W.dot(W)
         return loss + regularizer
 
+'''
+Computes the correctness for the given y and prediction.
+Only 
+'''
 def crtness(Y, prediction):
     n = Y.size
     prediction = np.round(prediction)
@@ -174,91 +185,6 @@ def gradH(H, X, Y, m, k, reg_weight):
     return compress(dLdw0, dLdWi, dLdV, m, k)
 
 
-# def gradHVecOLD(H, X, Y, m, k, reg_weight):
-#     Y = np.array(Y)
-#     n,m = X.shape
-#     w0, W, V = extract(H, m, k)
-#     diff = Y - (np.asarray(prediction(X, w0, W, V))).ravel()
-
-#     dLdw0 = - np.sum(diff) * 2 / n
-#     dLdWi = -2.0/n * (diff.dot(X)).ravel() + 2 * reg_weight * W
-
-#     # dLdV = np.empty((m,k))
-#     # XV = X.dot(V)
-#     # xT2 = xT ** 2
-#     # v_ifX = np.empty((k,n))
-#     # Xv_ifX = np.empty((k,n))
-
-
-
-
-#     XVT = X.dot(V).T
-#     xT = X.T
-#     diffT = diff[:, np.newaxis]
-#     x2 = X ** 2
-
-#     # print(x2.shape)
-#     # print(V.shape)
-
-
-    # v_ifXDiff = np.einsum('ij, jk -> jki', x2, V)
-    # Xv_ifX = np.einsum('ij, kj -> ikj', xT, XVT)
-    # v_ifXDiff -= Xv_ifX
-    # dLdV = np.einsum('ijk , kl ->ijl', v_ifXDiff, diffT).reshape(m,k)
-
-#     # v_ifX = np.einsum('ij, jk -> jki', x2, V) - np.einsum('ij, kj -> ikj', xT, XVT)
-#     # v_ifXDiff -= np.einsum('ij, kj -> ikj', xT, XVT)
-
-#     # Xv_ifX = np.einsum('ij, kj -> ikj', xT, XVT)
-
-
-#     # dLdV = np.einsum('ijk , kl ->ijl', v_ifXDiff, diffT).reshape(m,k)
-
-#     dLdV = np.array([])
-#     times = 10
-#     for i in range(times):
-#         if i < times - 1:
-#             v_ifXDiff = np.einsum('ij, jk -> jki', x2[i*int(n/times):(i+1)*int(n/times),:], V[:,i*int(k/times):(i+1)*int(k/times)])
-#             Xv_ifX = np.einsum('ij, kj -> ikj', xT[:,i*int(n/times):(i+1)*int(n/times)], XVT[i*int(k/times):(i+1)*int(k/times),i*int(n/times):(i+1)*int(n/times)])
-#             v_ifXDiff -= Xv_ifX
-#             dLdV = np.append(dLdV, np.einsum('ijk , kl ->ijl', v_ifXDiff, diffT[i*int(n/times):(i+1)*int(n/times)]))
-# #             dLdV.append(np.einsum('ijk , kl ->ijl', v_ifXDiff, diffT[i*int(n/times):(i+1)*int(n/times)]))
-#         else:
-#             v_ifXDiff = np.einsum('ij, jk -> jki', x2[i*int(n/times):,:], V[:,i*int(k/times):])
-#             Xv_ifX = np.einsum('ij, kj -> ikj', xT[:,i*int(n/times):], XVT[i*int(k/times):,i*int(n/times):])
-#             v_ifXDiff -= Xv_ifX
-#             dLdV = np.append(dLdV, np.einsum('ijk , kl ->ijl', v_ifXDiff, diffT[i*int(n/times):]))
-# #             dLdV.append(np.einsum('ijk , kl ->ijl', v_ifXDiff, diffT[i*int(n/times):]))
-
-#     dLdV = dLdV.reshape(m,k)
-
-
-#     dLdV *= 2/n
-    # for i in range(m):
-    #     # v_ifX = V[i].reshape(k,-1) * xT2[i]
-    #     # v_ifX = (np.expand_dims(V[i], axis = 0).T).dot(np.expand_dims(xT2[i], axis = 0))
-    #     # v_ifX = V[i].reshape(k,1) * np.tile(xT2[i],(k, 1)) # do matrix mul matrix
-    #     v_ifX = V[i].reshape(-1,1).dot((xT2[i]).reshape(1, -1))
-    #     # v_ifX = np.multiply.outer(V[i], xT2[i]) # V: m x k X: n x m 
-
-    #     # v_ifX = (V[i, np.newaxis].T).dot(xT2[i, np.newaxis])
-    #     # np.dot(V[i].reshape(-1,1), xT2[i].reshape(1,-1), v_ifX)
-
-    #     # np.dot((V[i, np.newaxis].T),xT2[i, np.newaxis],  v_ifX)
-        
-    #     Xv_ifX = ((xT[i]).reshape(n,-1) * XV).T # XV: n x k x: n x m
-    #     # Xv_ifX = np.transpose(((xT[i]).reshape(n,-1) * XV))
-
-    #     # Xv_ifX = (xT[i][:,np.newaxis] * XV).T
-    #     # np.multiply(xT[i], XVT, Xv_ifX)
-    #     # Xv_ifX = xT[i] * XVT 
-
-    #     res = (v_ifX - Xv_ifX).dot(diffT)
-    #     dLdV[i] = res.ravel()
-#     return compress(dLdw0, dLdWi, dLdV, m, k)
-
-
-
 def gradHVec(H, X, Y, m, k, reg_weight):
     Y = np.array(Y)
     n,m = X.shape
@@ -271,7 +197,6 @@ def gradHVec(H, X, Y, m, k, reg_weight):
     diffT = diff[:, np.newaxis]
     x2 = X ** 2
     dLdV = np.array([])
-    factor = 50
     times = int(n / factor)
     if times == 0:
         times = 1
@@ -295,13 +220,6 @@ def gradHVec(H, X, Y, m, k, reg_weight):
 '''
 Wrapper for running minimize.py
 '''
-def runMin(X,Y, w0, W, V, k, reg_weight = 0.05):
-    n,m = X.shape
-    H = compress(w0, W, V, m, k)
-    [newH, fx, i] = minimize(H, lossH, gradH, (X, Y, m, k, reg_weight),maxnumlinesearch=8, verbose=False)
-    H = newH
-    
-    return extract(H, m, k)
 
 def runMinVec(X,Y, w0, W, V, k, reg_weight = 0.05):
     n,m = X.shape
@@ -366,3 +284,145 @@ def RMSE(y, pred):
     diff = (y - pred) ** 2
     res = np.sqrt( np.mean(diff) )
     return res
+
+def load_data_pred(data_input):
+    data = []
+    y = []
+    users = set()
+    items = set()
+    for line in data_input: 
+        (user,movieid,rating,ts) = line.split('\t')
+        data.append({"user_id" : str(user), "movie_id" : str(movieid)})
+        y.append(float(rating))
+        users.add(user)
+        items.add(movieid)
+    return (data, np.array(y), users, items)
+
+def gen_test(users, movies = 300):
+    test = []
+    for u in users:
+        for m in range(1, 1000):
+            test.append({"user_id" : str(u), "movie_id" : str(m)})
+    return test
+
+
+def predict(input_data, train_addr = "ua.base", test_addr = "ua.test", nb_epochs = 4, k = 10, n = 10):
+    pre_trained = os.path.exists(W0_ADDR) and os.path.exists(W_ADDR) and os.path.exists(V_ADDR)
+    (train_data, y_train, train_users, train_items) = loadData(train_addr)
+    v = DictVectorizer()
+    X_train = v.fit_transform(train_data)
+    (input_train, input_y, input_users, input_items) = load_data_pred(input_data)
+    I_train = v.transform(input_train)
+    X_train = np.array(X_train.todense())
+    I_train = np.array(I_train.todense())
+    y_train = np.array(y_train)
+    input_y = np.array(input_y)
+
+    if pre_trained:
+        w0 = np.load(W0_ADDR)
+        W = np.load(W_ADDR)
+        V = np.load(V_ADDR)
+        w0, W, V = runMinVec(I_train,input_y,w0, W, V, k)
+
+        test = v.transform(gen_test(input_users))
+        test = np.array(test.todense())
+        print np.shape(test)
+
+
+        pred = prediction(test, w0, W, V)
+
+    else:
+        n, m = X_train.shape
+        w0 = np.random.rand()
+        W  = np.random.rand(m)
+        V  = np.random.rand(m, k)
+
+        for i in range(nb_epochs):
+            w0, W, V = runMinVec(X_train,y_train,w0, W, V, k)
+
+        w0.dump(W0_ADDR)
+        W.dump(W_ADDR)
+        V.dump(V_ADDR)
+
+        pred = prediction(X_test, w0, W, V)
+    
+    res = zip(*heapq.nlargest(n, enumerate(pred), key=operator.itemgetter(1)))[0]
+    return res
+
+def make_batches(data, batch_size):
+    batches = []
+    batch = []
+    for rate in data: 
+        if len(batch) == batch_size:
+            batches.append(batch)
+            batch = []
+        batch.append(rate)
+    if batch:
+        batches.append(batch)
+
+    return np.array(batches)
+
+
+
+
+if __name__ == '__main__':
+
+
+
+    (train_data, y_train, train_users, train_items) = loadData("ua.base")
+    (test_data, y_test, test_users, test_items) = loadData("ua.test")
+    v = DictVectorizer()
+    X_train = v.fit_transform(train_data)
+    X_test = v.transform(test_data)
+    # X_test = np.array(X_test.todense())
+    # print np.shape(X_test)
+    # print predict(test)
+    y_train = y_train
+    y_train = np.array(y_train)
+    y_test = y_test
+
+    X_train = np.array(X_train.todense())
+    X_test = np.array(X_test.todense())
+    # print X_test[0]
+
+    k = 10
+    nb_epochs = 4
+    n, m = X_train.shape
+    # print m
+    w0 = np.random.rand()
+    W  = np.random.rand(m)
+    V  = np.random.rand(m, k)
+    epo_losses = []
+    correctness = []
+    rmse = []
+    avg_dist = []
+    mode,_ = stats.mode(y_train)
+    mode_pred = np.full(len(y_test), mode , dtype = int)
+    mode_crt = crtness(y_test, mode_pred)
+    mode_rmse = RMSE(y_test, mode_pred)
+    mode_avgdist = avgdist(y_test, mode_pred)
+    mean_pred = np.full(len(y_test), np.mean(y_train))
+    mean_crt = crtness(y_test, mean_pred)
+    mean_rmse = RMSE(y_test, mean_pred)
+    mean_avgdist = avgdist(y_test, mean_pred)
+
+
+    for i in range(nb_epochs):
+        tic = clock()
+        print("running epoch{}".format(i))
+        w0, W, V = runMinVec(X_train,y_train,w0, W, V, k)
+        pred = prediction(X_test, w0, W, V)
+        toc = clock()
+        print (("Epoch {:3d} took {:3.1f}s. ").format(i,toc - tic))
+        print("loss is:{}".format(L(y_test, pred,W)))
+        epo_losses.append(L(y_test, pred, W))
+    #     print("y_test: ", y_test, "pred: ", pred)
+    #     print("correctness is:{}".format(crtness(y_test, pred)))
+        correctness.append(crtness(y_test, pred))
+        rmse.append(RMSE(y_test, pred))
+        avg_dist.append(avgdist(y_test, pred))
+
+    # w0.dump(W0_ADDR)
+    # W.dump(W_ADDR)
+    # V.dump(V_ADDR)
+
