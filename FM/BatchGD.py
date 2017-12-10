@@ -17,7 +17,7 @@ import heapq
 import operator
 from minimize import minimize
 
-factor = 100
+factor = 50
 
 W0_ADDR = "../Saved/w0.pkl"
 W_ADDR = "../Saved/w.pkl"
@@ -298,6 +298,7 @@ def load_data_pred(data_input):
         items.add(movieid)
     return (data, np.array(y), users, items)
 
+
 def gen_test(users, movies = 300):
     test = []
     for u in users:
@@ -307,6 +308,13 @@ def gen_test(users, movies = 300):
 
 
 def predict(input_data, train_addr = "ua.base", test_addr = "ua.test", nb_epochs = 4, k = 10, n = 10):
+    """
+    input_data: should follow the format as in ua.base
+    train_addr: training data address
+    test_addr: testing adta address, not used if called in front-end
+    nb_epochs: number of epochs, default 4
+    n: return the top nth highest movie id, default 10
+    """
     pre_trained = os.path.exists(W0_ADDR) and os.path.exists(W_ADDR) and os.path.exists(V_ADDR)
     (train_data, y_train, train_users, train_items) = loadData(train_addr)
     v = DictVectorizer()
@@ -369,60 +377,60 @@ if __name__ == '__main__':
 
 
 
-    (train_data, y_train, train_users, train_items) = loadData("ua.base")
-    (test_data, y_test, test_users, test_items) = loadData("ua.test")
-    v = DictVectorizer()
-    X_train = v.fit_transform(train_data)
-    X_test = v.transform(test_data)
+    # (train_data, y_train, train_users, train_items) = loadData("ua.base")
+    # (test_data, y_test, test_users, test_items) = loadData("ua.test")
+    # v = DictVectorizer()
+    # X_train = v.fit_transform(train_data)
+    # X_test = v.transform(test_data)
+    # # X_test = np.array(X_test.todense())
+    # # print np.shape(X_test)
+    # # print predict(test)
+    # y_train = y_train
+    # y_train = np.array(y_train)
+    # y_test = y_test
+
+    # X_train = np.array(X_train.todense())
     # X_test = np.array(X_test.todense())
-    # print np.shape(X_test)
-    # print predict(test)
-    y_train = y_train
-    y_train = np.array(y_train)
-    y_test = y_test
+    # # print X_test[0]
 
-    X_train = np.array(X_train.todense())
-    X_test = np.array(X_test.todense())
-    # print X_test[0]
-
-    k = 10
-    nb_epochs = 4
-    n, m = X_train.shape
-    # print m
-    w0 = np.random.rand()
-    W  = np.random.rand(m)
-    V  = np.random.rand(m, k)
-    epo_losses = []
-    correctness = []
-    rmse = []
-    avg_dist = []
-    mode,_ = stats.mode(y_train)
-    mode_pred = np.full(len(y_test), mode , dtype = int)
-    mode_crt = crtness(y_test, mode_pred)
-    mode_rmse = RMSE(y_test, mode_pred)
-    mode_avgdist = avgdist(y_test, mode_pred)
-    mean_pred = np.full(len(y_test), np.mean(y_train))
-    mean_crt = crtness(y_test, mean_pred)
-    mean_rmse = RMSE(y_test, mean_pred)
-    mean_avgdist = avgdist(y_test, mean_pred)
+    # k = 10
+    # nb_epochs = 4
+    # n, m = X_train.shape
+    # # print m
+    # w0 = np.random.rand()
+    # W  = np.random.rand(m)
+    # V  = np.random.rand(m, k)
+    # epo_losses = []
+    # correctness = []
+    # rmse = []
+    # avg_dist = []
+    # mode,_ = stats.mode(y_train)
+    # mode_pred = np.full(len(y_test), mode , dtype = int)
+    # mode_crt = crtness(y_test, mode_pred)
+    # mode_rmse = RMSE(y_test, mode_pred)
+    # mode_avgdist = avgdist(y_test, mode_pred)
+    # mean_pred = np.full(len(y_test), np.mean(y_train))
+    # mean_crt = crtness(y_test, mean_pred)
+    # mean_rmse = RMSE(y_test, mean_pred)
+    # mean_avgdist = avgdist(y_test, mean_pred)
 
 
-    for i in range(nb_epochs):
-        tic = clock()
-        print("running epoch{}".format(i))
-        w0, W, V = runMinVec(X_train,y_train,w0, W, V, k)
-        pred = prediction(X_test, w0, W, V)
-        toc = clock()
-        print (("Epoch {:3d} took {:3.1f}s. ").format(i,toc - tic))
-        print("loss is:{}".format(L(y_test, pred,W)))
-        epo_losses.append(L(y_test, pred, W))
-    #     print("y_test: ", y_test, "pred: ", pred)
-    #     print("correctness is:{}".format(crtness(y_test, pred)))
-        correctness.append(crtness(y_test, pred))
-        rmse.append(RMSE(y_test, pred))
-        avg_dist.append(avgdist(y_test, pred))
+    # for i in range(nb_epochs):
+    #     tic = clock()
+    #     print("running epoch{}".format(i))
+    #     w0, W, V = runMinVec(X_train,y_train,w0, W, V, k)
+    #     pred = prediction(X_test, w0, W, V)
+    #     toc = clock()
+    #     print (("Epoch {:3d} took {:3.1f}s. ").format(i,toc - tic))
+    #     print("loss is:{}".format(L(y_test, pred,W)))
+    #     epo_losses.append(L(y_test, pred, W))
+    # #     print("y_test: ", y_test, "pred: ", pred)
+    # #     print("correctness is:{}".format(crtness(y_test, pred)))
+    #     correctness.append(crtness(y_test, pred))
+    #     rmse.append(RMSE(y_test, pred))
+    #     avg_dist.append(avgdist(y_test, pred))
 
-    # w0.dump(W0_ADDR)
-    # W.dump(W_ADDR)
-    # V.dump(V_ADDR)
+    # # w0.dump(W0_ADDR)
+    # # W.dump(W_ADDR)
+    # # V.dump(V_ADDR)
 
