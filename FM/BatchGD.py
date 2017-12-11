@@ -388,29 +388,32 @@ if __name__ == '__main__':
     w0 = np.load(W0_ADDR)
     W  = np.load(W_ADDR)
     V  = np.load(V_ADDR)
-    epo_losses = []
-    correctness = []
-    rmse = []
-    avg_dist = []
+    print (w0)
+    print (W)
+    print (V)
+    # epo_losses = []
+    # correctness = []
+    # rmse = []
+    # avg_dist = []
     
-    for i in range(nb_epochs):
-        print("running epoch{}".format(i))
-        w0, W, V = runMinVec(X_train,y_train,w0, W, V, k)
-        pred = prediction(X_test, w0, W, V)
-        print("loss is:{}".format(L(y_test, pred,W)))
-        epo_losses.append(L(y_test, pred, W))
-    #     print("y_test: ", y_test, "pred: ", pred)
-    #     print("correctness is:{}".format(crtness(y_test, pred)))
-        correctness.append(crtness(y_test, pred))
-        rmse.append(RMSE(y_test, pred))
-        avg_dist.append(avgdist(y_test, pred))
-        crt = crtness(y_test, pred)
-        avgd = avgdist(y_test, pred)
+    # for i in range(nb_epochs):
+    #     print("running epoch{}".format(i))
+    #     w0, W, V = runMinVec(X_train,y_train,w0, W, V, k)
+    #     pred = prediction(X_test, w0, W, V)
+    #     print("loss is:{}".format(L(y_test, pred,W)))
+    #     epo_losses.append(L(y_test, pred, W))
+    # #     print("y_test: ", y_test, "pred: ", pred)
+    # #     print("correctness is:{}".format(crtness(y_test, pred)))
+    #     correctness.append(crtness(y_test, pred))
+    #     rmse.append(RMSE(y_test, pred))
+    #     avg_dist.append(avgdist(y_test, pred))
+    #     crt = crtness(y_test, pred)
+    #     avgd = avgdist(y_test, pred)
 
 
-        print (("correctness is:{}. \n"
-                        "RMSE is: {}. \n"
-                        "Average distance is: {}. ").format(crt,RMSE(y_test,pred),avgd))
+    #     print (("correctness is:{}. \n"
+    #                     "RMSE is: {}. \n"
+    #                     "Average distance is: {}. ").format(crt,RMSE(y_test,pred),avgd))
 
     # w0.dump(W0_ADDR)
     # W.dump(W_ADDR)
