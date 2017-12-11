@@ -1,0 +1,234 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Movie Rating System</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="static/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="static/starter-template.css" rel="stylesheet">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+    <script src="static/dist/js/bootstrap.min.js"></script>
+
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    
+    <script src="static/dist/js/bootstrap-waitingfor.js"></script>
+
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Movie Rating System</a>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="#">Home</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <br>
+
+    <div class="container">
+
+      <div class="well" style="text-align: center;">
+        <h1>Movie Recommendation System</h1>
+        <h3>Enter your name and favorite genre.</h3>
+
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/IMDB_Logo_2016.svg/1200px-IMDB_Logo_2016.svg.png" width="30%">
+
+        <br>
+
+        <h4>Name: <input type="text" id="username"></h4>
+
+        <h4>Favorite genre: <select id="rating"></h4>
+        </select>
+        <br><br>
+        <button id="submit" class="btn btn-primary">Take the test</button>
+
+      </div>
+
+      <hr>
+
+      <div id="test"></div>
+
+    <script type="text/javascript">
+
+    var raw_movie_data;
+    var movie_data;
+    var test_area = d3.select("#test");
+    var username;
+    var genre;
+
+    var film_ratings = [];
+
+    var num_movies = 20;
+
+    waitingDialog.show("Loading...");
+
+    var populate_form = function(selector, entries){
+      entries.forEach(function(d){
+        $(selector).append(
+          $('<option />')
+          .text(d)
+          .val(d)
+        );
+        });
+    };
+
+    $(document).ready(function(){
+        $.post("/movies",
+        {
+            rating: $("#rating").val(),
+            name: "abc"
+        },
+        function(data, status){
+            raw_movie_data = data;
+
+            movie_data = d3.nest()
+            .key(function(d){return d.genre;})
+            .entries(data);
+
+            populate_form("#rating", movie_data.map(function(d){return d.key;}));
+
+            waitingDialog.hide();
+        });
+    });
+
+
+    $("#submit").click(function(d){
+        username = $("#username").val();
+        genre = $("#rating").val();
+
+        $("#test").html("");
+
+        welcome_section = test_area.append("div");
+
+        welcome_section.attr("class", "well").style("text-align", "center");
+
+        welcome_section.append("h2").html("Hello "+ username+", you selected "+ genre+"." );
+        welcome_section.append("p").html("We are going to ask you to rate 20 movies. <br> Then we will predict 10 other movies that you might like." );
+
+        test_area.append("hr");
+
+        test_section = test_area.append("div");
+
+        movies = movie_data.filter(function(d){return d.key == genre;})[0].values;
+
+        random_ids = [];
+        random_movies = [];
+        i = 0
+        while (i < num_movies/2){
+            random_key = parseInt(Math.random()*movies.length);
+            if (random_ids.indexOf(random_key) == -1){
+                random_ids.push(random_key);
+                random_movies.push(movies[random_key]);
+                i++;
+            }
+        }
+
+        random_ids = [];
+        i = 0
+        while (i < num_movies/2){
+            random_key = parseInt(Math.random()*raw_movie_data.length);
+            if (random_ids.indexOf(random_key) == -1){
+                random_ids.push(random_key);
+                random_movies.push(raw_movie_data[random_key]);
+                i++;
+            }
+        }
+
+        random_movies.forEach(function(d, i){
+            panel = test_section.append("div").attr("class", "panel panel-primary").attr("id", "panel_"+i);
+            panel.append("div").attr("class", "panel-heading").append("h3").attr("class", "panel-title").text(d.title + " ["+d.genre+"]");
+            sel = panel.append("div").attr("class", "panel-body").style("text-align", 'left');
+
+            sel.append("button").attr("class", "btn btn-danger").text("Dislike").attr("id", "sel_dislike_"+i);
+            sel.append("span").text(" ");
+            sel.append("button").attr("class", "btn btn-info").text("Neutral").attr("id", "sel_neutral_"+i);
+            sel.append("span").text(" ");
+            sel.append("button").attr("class", "btn btn-warning").text("Like").attr("id", "sel_like_"+i);
+
+            $("#sel_dislike_"+i).click(function(){
+                $("#panel_"+i).hide(300);
+                film_ratings.push({
+                    username: username,
+                    userid: 10000,
+                    movie_id: d.id,
+                    movie_name: d.title,
+                    time: (new Date()).getTime(),
+                    rating: 1
+                });
+            });
+
+            $("#sel_neutral_"+i).click(function(){
+                $("#panel_"+i).hide(300);
+                film_ratings.push({
+                    username: username,
+                    userid: 10000,
+                    movie_id: d.id,
+                    movie_name: d.title,
+                    time: (new Date()).getTime(),
+                    rating: 3
+                });
+            });
+
+            $("#sel_like_"+i).click(function(){
+                $("#panel_"+i).hide(300);
+                film_ratings.push({
+                    username: username,
+                    userid: 10000,
+                    movie_id: d.id,
+                    movie_name: d.title,
+                    time: (new Date()).getTime(),
+                    rating: 5
+                });
+            });
+
+        });
+
+        submission = test_section.append("div").attr("class", "well").style("text-align", "center");
+
+        submission.append("h2").text("Recommend more movies for me.");
+        submission.append("button").text("Recommend!").attr("class", "btn btn-success").attr("id", "submission");
+
+        $("#submission").click(function(d){
+            waitingDialog.show("Waiting for ML Library...");
+            $.post("/predict",
+                {
+                    entries: JSON.stringify(film_ratings)
+                },
+                function(data, status){
+                    console.log(data);
+
+                    waitingDialog.hide();
+                });
+        });
+
+    })
+
+    </script>
+
+  </body>
+</html>
