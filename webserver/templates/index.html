@@ -83,6 +83,8 @@
 
     var film_ratings = [];
 
+    var film_recommendations;
+
     var num_movies = 20;
 
     waitingDialog.show("Loading...");
@@ -139,7 +141,7 @@
         random_ids = [];
         random_movies = [];
         i = 0
-        while (i < num_movies/2){
+        while (i < Math.min(num_movies/2, movies.length)){
             random_key = parseInt(Math.random()*movies.length);
             if (random_ids.indexOf(random_key) == -1){
                 random_ids.push(random_key);
@@ -150,7 +152,7 @@
 
         random_ids = [];
         i = 0
-        while (i < num_movies/2){
+        while (i < Math.max(num_movies/2, num_movies-movies.length)){
             random_key = parseInt(Math.random()*raw_movie_data.length);
             if (random_ids.indexOf(random_key) == -1){
                 random_ids.push(random_key);
@@ -221,8 +223,31 @@
                 },
                 function(data, status){
                     console.log(data);
-
                     waitingDialog.hide();
+
+                    submission.append("h3").text("You might be interested in the following movies:");
+
+                    film_recommendations = raw_movie_data.filter(function(d){
+                        return data.indexOf(d.id) != -1; 
+                    });
+
+                    tbl = submission.append("table").attr("class", "table");
+                    th = tbl.append("thead").append("tr");
+                    categories = ["Movie ID", "Movie Name", "Release Data", "Genre"];
+                    categories.forEach(function(d){
+                        th.append("th").text(d);
+                    })
+
+                    tb = tbl.append("tbody");
+
+                    film_recommendations.forEach(function(d){
+                        row = tb.append("tr").attr("align", "left");
+                        row.append("td").text(d.id);
+                        row.append("td").text(d.title);
+                        row.append("td").text(d.release);
+                        row.append("td").text(d.genre);
+                    })
+
                 });
         });
 

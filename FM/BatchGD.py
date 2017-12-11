@@ -351,7 +351,7 @@ def predict(input_data, train_addr = "ua.base", test_addr = "ua.test", nb_epochs
 
         pred = prediction(X_test, w0, W, V)
     
-    res = zip(*heapq.nlargest(n, enumerate(pred), key=operator.itemgetter(1)))[0]
+    res = list(zip(*heapq.nlargest(n, enumerate(pred), key=operator.itemgetter(1))))[0]
     return res
 
 def make_batches(data, batch_size):
